@@ -20,6 +20,9 @@ vim.opt.showmode = false
 vim.opt.clipboard = 'unnamedplus'
 vim.opt.breakindent = true
 vim.opt.undofile = true
+vim.opt.undolevels = 1000
+vim.opt.undoreload = 10000
+vim.opt.undodir = vim.fn.expand '$HOME/.vim/undodir'
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.smartindent = false
@@ -135,18 +138,18 @@ require('lazy').setup({
   --    require('gitsigns').setup({ ... })
   --
   -- See `:help gitsigns` to understand what the configuration keys do
-  { -- Adds git related signs to the gutter, as well as utilities for managing changes
-    'lewis6991/gitsigns.nvim',
-    opts = {
-      signs = {
-        add = { text = '+' },
-        change = { text = '~' },
-        delete = { text = '_' },
-        topdelete = { text = '‾' },
-        changedelete = { text = '~' },
-      },
-    },
-  },
+  -- { -- Adds git related signs to the gutter, as well as utilities for managing changes
+  --   'lewis6991/gitsigns.nvim',
+  --   opts = {
+  --     signs = {
+  --       add = { text = '+' },
+  --       change = { text = '~' },
+  --       delete = { text = '_' },
+  --       topdelete = { text = '‾' },
+  --       changedelete = { text = '~' },
+  --     },
+  --   },
+  -- },
 
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
@@ -170,19 +173,37 @@ require('lazy').setup({
       require('which-key').setup()
 
       -- Document existing key chains
-      require('which-key').register {
-        ['<leader>c'] = { name = '[C]ode', _ = 'which_key_ignore' },
-        ['<leader>d'] = { name = '[D]ocument', _ = 'which_key_ignore' },
-        ['<leader>r'] = { name = '[R]ename', _ = 'which_key_ignore' },
-        ['<leader>s'] = { name = '[S]earch', _ = 'which_key_ignore' },
-        ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
-        ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
-        ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
+      require('which-key').add {
+
+        { '<leader>c', group = '[C]ode' },
+        { '<leader>c_', hidden = true },
+        { '<leader>d', group = '[D]ocument' },
+        { '<leader>d_', hidden = true },
+        { '<leader>h', group = 'Git [H]unk' },
+        { '<leader>h_', hidden = true },
+        { '<leader>r', group = '[R]ename' },
+        { '<leader>r_', hidden = true },
+        { '<leader>s', group = '[S]earch' },
+        { '<leader>s_', hidden = true },
+        { '<leader>t', group = '[T]oggle' },
+        { '<leader>t_', hidden = true },
+        { '<leader>w', group = '[W]orkspace' },
+        { '<leader>w_', hidden = true },
+        -- ['<leader>c'] = { name = '[C]ode', _ = 'which_key_ignore' },
+        -- ['<leader>d'] = { name = '[D]ocument', _ = 'which_key_ignore' },
+        -- ['<leader>r'] = { name = '[R]ename', _ = 'which_key_ignore' },
+        -- ['<leader>s'] = { name = '[S]earch', _ = 'which_key_ignore' },
+        -- ['<leader>w'] = { name = '[W]orkspace', _ = 'which_key_ignore' },
+        -- ['<leader>t'] = { name = '[T]oggle', _ = 'which_key_ignore' },
+        -- ['<leader>h'] = { name = 'Git [H]unk', _ = 'which_key_ignore' },
       }
       -- visual mode
-      require('which-key').register({
-        ['<leader>h'] = { 'Git [H]unk' },
-      }, { mode = 'v' })
+      -- require('which-key').add({
+      --   ['<leader>h'] = { 'Git [H]unk' },
+      -- }, { mode = 'v' })
+      require('which-key').add {
+        { '<leader>h', desc = 'Git [H]unk', mode = 'v' },
+      }
     end,
   },
 
@@ -216,6 +237,10 @@ require('lazy').setup({
 
       -- Useful for getting pretty icons, but requires a Nerd Font.
       { 'nvim-tree/nvim-web-devicons', enabled = vim.g.have_nerd_font },
+
+      { 'nvim-telescope/telescope-smart-history.nvim', dependencies = {
+        'kkharji/sqlite.lua',
+      } },
     },
     config = function()
       -- Telescope is a fuzzy finder that comes with a lot of different things that
@@ -248,6 +273,13 @@ require('lazy').setup({
         --     i = { ['<c-enter>'] = 'to_fuzzy_refine' },
         --   },
         -- },
+        defaults = {
+          path_display = { 'smart' },
+          history = {
+            path = '~/.local/share/nvim/databases/telescope_history.sqlite3',
+            limit = 100,
+          },
+        },
         -- pickers = {}
         extensions = {
           ['ui-select'] = {
@@ -259,19 +291,30 @@ require('lazy').setup({
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
       pcall(require('telescope').load_extension, 'ui-select')
+      pcall(require('telescope').load_extension, 'smart_history')
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set('n', '<leader>sef', function()
+        return builtin.find_files { no_ignore = true, no_ignore_parent = true, hidden = true }
+      end, { desc = '[S]earch files [E]verywhere', buffer })
+
+      vim.keymap.set('n', '<leader>sef', function()
+        return builtin.find_files { no_ignore = true, no_ignore_parent = true, hidden = true }
+      end, { desc = '[S]earch files [E]verywhere', buffer })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
       vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
+      vim.keymap.set('n', '<leader>sc', builtin.git_commits, { desc = '[S]earch [C]ommits' })
       vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+
+      vim.keymap.set('n', '<leader>g', builtin.spell_suggest, { desc = 'Spell Check' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -425,19 +468,85 @@ require('lazy').setup({
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+      --
+      --
+      local tailcssConfigFiles = {}
+      tailcssConfigFiles['apps/client-portal/tailwind.config.js'] = { 'apps/**', 'libs/**' }
+
       local servers = {
         clangd = {},
-        gopls = {},
+        -- gopls = {}, -- fails to install due to GOROOT configuration
         pyright = {},
-        rust_analyzer = {},
+        -- prettierd = {},
+        rust_analyzer = {
+          on_attach = function(client)
+            -- require('completion').on_attach(client)
+          end,
+          settings = {
+            ['rust-analyzer'] = {
+              imports = {
+                granularity = {
+                  group = 'module',
+                },
+                prefix = 'self',
+              },
+              cargo = {
+                buildScripts = {
+                  enable = true,
+                },
+              },
+              procMacro = {
+                enable = true,
+              },
+            },
+          },
+        },
+        tailwindcss = {
+          -- attempts to fix an issue with  tailwind lsp not finding config file
+          hovers = true,
+          suggestions = true,
+          experimental = {
+            configFile = tailcssConfigFiles,
+          },
+          root_dir = function()
+            -- require('lspconfig').util
+            return '~/dockerized_env/projects/fe-fusion/apps/client-portal/'
+          end,
+          -- root_dir = function(fname)
+          --   local root_pattern = require('lspconfig').util.root_pattern('tailwind.config.cjs', 'tailwind.config.js', 'postcss.config.js')
+          --   return root_pattern(fname)
+          -- end,
+        },
+        -- jdtls = {
+        --   settings = {
+        --     java = {
+        --       configuration = {
+        --         detectJdksAtStart = false,
+        --         runtimes = {
+        --           {
+        --             name = 'JavaSE-17',
+        --             path = '/usr/lib/jvm/java-17-openjdk-amd64',
+        --           },
+        --         },
+        --       },
+        --     },
+        --   },
+        -- },
+        zls = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
         --
         -- But for many setups, the LSP (`tsserver`) will work just fine
-        tsserver = {},
+        ts_ls = {},
+        sqls = {},
         --
+        intelephense = {
+          -- settings = {
+          --   licenseKey = os.getenv 'INTELEPHENSE_LICENSE',
+          -- },
+        },
 
         lua_ls = {
           -- cmd = {...},
@@ -453,6 +562,8 @@ require('lazy').setup({
             },
           },
         },
+
+        angularls = {},
       }
 
       -- Ensure the servers and tools above are installed
@@ -483,6 +594,13 @@ require('lazy').setup({
           end,
         },
       }
+
+      --
+      -- require('lspconfig').tailwindcss.setup {
+      --   root_dir = function(fname)
+      --     -- so on
+      --   end,
+      -- }
     end,
   },
 
@@ -513,6 +631,13 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        typescript = { 'prettier' }, -- , lsp_format = 'fallback' },
+        typescriptreact = { 'prettier' }, -- , lsp_format = 'fallback' },
+        sql = { 'sqlfmt', 'sql-formatter' },
+        ['_'] = { 'prettierd' },
+        -- javascript = { 'prettierd' }, -- , lsp_format = 'fallback' },
+        -- tsx = { 'prettierd' },
+        -- jsx = { 'prettierd' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -521,6 +646,16 @@ require('lazy').setup({
         -- javascript = { { "prettierd", "prettier" } },
       },
     },
+  },
+
+  {
+    'roobert/tailwindcss-colorizer-cmp.nvim',
+    -- optionally, override the default options:
+    config = function()
+      require('tailwindcss-colorizer-cmp').setup {
+        color_square_width = 2,
+      }
+    end,
   },
 
   { -- Autocompletion
@@ -550,6 +685,8 @@ require('lazy').setup({
             end,
           },
         },
+        -- 'luckasRanarison/tailwind-tools.nvim',
+        -- 'onsails/lspkind-nvim',
       },
       'saadparwaiz1/cmp_luasnip',
 
@@ -559,8 +696,52 @@ require('lazy').setup({
       'hrsh7th/cmp-nvim-lsp',
       'hrsh7th/cmp-path',
       'hrsh7th/cmp-nvim-lsp-signature-help',
+      {
+        'tzachar/cmp-ai',
+        dependencies = 'nvim-lua/plenary.nvim',
+        config = function()
+          local cmp_ai = require 'cmp_ai.config'
+          cmp_ai:setup {
+            max_lines = 100,
+            provider = 'Ollama',
+            provider_options = {
+              model = 'codellama:7b',
+            },
+            notify = true,
+            notify_callback = function(msg)
+              vim.notify(msg)
+            end,
+            run_on_every_keystroke = true,
+            ignored_file_types = {
+              -- default is not to ignore
+              -- uncomment to ignore in lua:
+              -- lua = true
+            },
+          }
+        end,
+      },
       -- 'saadparwaiz1/cmp_luasnip',
+      -- Tailwind stuff
+      'tailwind-tools',
+      'onsails/lspkind-nvim',
+      {
+        'roobert/tailwindcss-colorizer-cmp.nvim',
+        config = function()
+          require('cmp').config.formatting = {
+            format = require('tailwindcss-colorizer-cmp').formatter,
+          }
+        end,
+      },
     },
+    -- opts = function()
+    --   return {
+    --     formatting = {
+    --       format = require('lspkind').cmp_format {
+    --         before = require('tailwind-tools.cmp').lspkind_format,
+    --       },
+    --     },
+    --   }
+    -- end,
     config = function()
       -- See `:help cmp`
       local cmp = require 'cmp'
@@ -626,6 +807,17 @@ require('lazy').setup({
 
           -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
           --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
+          --
+          ['<C-x>'] = cmp.mapping(
+            cmp.mapping.complete {
+              config = {
+                sources = cmp.config.sources {
+                  { name = 'cmp_ai' },
+                },
+              },
+            },
+            { 'i' }
+          ),
         },
         sources = {
           { name = 'nvim_lsp' },
@@ -756,7 +948,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
